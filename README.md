@@ -3,12 +3,12 @@ This is a personal project.
 # Chronicle SecOps MCP Server
 
 This is an MCP (Model Context Protocol) server for interacting with Google's Chronicle Security Operations suite.
-
+[MCP Info](https://modelcontextprotocol.io/introduction)
 ## Installing in Claude Desktop
 
 To use this MCP server with Claude Desktop:
 
-1. Install Claude Desktop from [Claude's website](https://claude.ai/desktop)
+1. Install Claude Desktop 
 
 2. Open Claude Desktop and select "Settings" from the Claude menu
 
