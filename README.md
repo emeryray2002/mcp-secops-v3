@@ -1,6 +1,7 @@
 This is a personal project.
 
 # Chronicle SecOps MCP Server
+[![smithery badge](https://smithery.ai/badge/@emeryray2002/mcp-secops-v3)](https://smithery.ai/server/@emeryray2002/mcp-secops-v3)
 
 This is an MCP (Model Context Protocol) server for interacting with Google's Chronicle Security Operations suite.
 [MCP Info](https://modelcontextprotocol.io/introduction)
@@ -57,6 +58,15 @@ To use this MCP server with Claude Desktop:
 
 ## Installation
 
+### Installing via Smithery
+
+To install mcp-secops-v3 for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@emeryray2002/mcp-secops-v3):
+
+```bash
+npx -y @smithery/cli install @emeryray2002/mcp-secops-v3 --client claude
+```
+
+### Manual Installation
 1. Install the package:
 
 ```bash
