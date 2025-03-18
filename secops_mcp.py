@@ -476,6 +476,13 @@ async def get_ioc_matches(
     except Exception as e:
         return f"Error retrieving IoC matches: {str(e)}"
 
-if __name__ == "__main__":
+def main() -> None:
+    """Run the MCP server for SecOps tools.
+    
+    This function initializes and starts the MCP server with all the defined tools.
+    """
     # Initialize and run the server
     mcp.run(transport='stdio')
+
+if __name__ == "__main__":
+    main()
