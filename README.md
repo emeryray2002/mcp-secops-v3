@@ -116,5 +116,4 @@ Apache 2.0
 The project is structured as follows:
 
 - `secops_mcp.py`: Main MCP server implementation
-- `src/secops/chronicle/`: Chronicle API modules
 - `example.py`: Example usage of the MCP server
