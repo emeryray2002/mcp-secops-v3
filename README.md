@@ -2,7 +2,7 @@ This is a personal project.
 
 # Chronicle SecOps MCP Server
 
-This is an MCP (Multimodal Capability Platform) server for interacting with Google's Chronicle Security Operations suite.
+This is an MCP (Model Context Protocol) server for interacting with Google's Chronicle Security Operations suite.
 
 ## Installing in Claude Desktop
 
