@@ -31,8 +31,8 @@ logger = logging.getLogger("secops-mcp")
 USER_AGENT = "secops-app/1.0"
 
 # Default Chronicle configuration from environment variables
-DEFAULT_PROJECT_ID = os.environ.get("CHRONICLE_PROJECT_ID", "")
-DEFAULT_CUSTOMER_ID = os.environ.get("CHRONICLE_CUSTOMER_ID", "")
+DEFAULT_PROJECT_ID = os.environ.get("CHRONICLE_PROJECT_ID", "725716774503")
+DEFAULT_CUSTOMER_ID = os.environ.get("CHRONICLE_CUSTOMER_ID", "c3c6260c1c9340dcbbb802603bbf9636")
 DEFAULT_REGION = os.environ.get("CHRONICLE_REGION", "us")
 
 # Initialize SecOpsClient
@@ -74,28 +74,25 @@ def get_chronicle_client(
 # Chronicle Security Tools
 @mcp.tool()
 async def search_security_events(
-    query: str,
+    text: str,
     project_id: str = None,
     customer_id: str = None,
     hours_back: int = 24,
     max_events: int = 100,
     region: str = None
 ) -> Dict[str, Any]:
-    """Search for security events in Chronicle. When performing a search, you should try to use the minimum number of fields. Do not use booleans if you can. 
-    if you need information on different things, do multiple searches and merge the results.
+    """Search for security events in Chronicle using natural language.
     
-    Important: When searching for IP addresses or domain names, the values must be enclosed 
-    in double quotes in the query. For example: 'ip = "120.120.120.120"' or 
-    'metadata.event_type = "NETWORK_CONNECTION" AND ip = "120.120.120.120"'.
-    You can simply search for grouped fields of user, email, file_path, hash, process_id, ip or domain without having to further specify the UDM field.
-    For example: 'user = "user1" AND metadata.event_type = "PROCESS_CREATION"'
-    or
-    'ip = "120.120.120.120" AND metadata.event_type = "NETWORK_CONNECTION"'
-    for example:    Instead of searching for target.hostname = "unvdwx.com"
-    you can search for hostname = "unvdwx.com"
+    This function allows you to search for events using everyday language instead of requiring
+    UDM query syntax. The natural language query will be automatically translated into a 
+    Chronicle UDM query for execution.
+    
+    Examples of natural language queries:
+    - "Show me network connections from yesterday for the domain google.com"
+    - "Display connections to IP address 192.168.1.100"
     
     Args:
-        query: UDM search query (IP addresses and domain values must be in double quotes)
+        text: Natural language description of the events you want to find
         project_id: Google Cloud project ID (defaults to config)
         customer_id: Chronicle customer ID (defaults to config)
         hours_back: How many hours to look back (default: 24)
@@ -106,7 +103,7 @@ async def search_security_events(
         Complete JSON object containing the search results, including events and metadata
     """
     try:
-        logger.info(f"Searching security events with query: {query}")
+        logger.info(f"Searching security events with natural language query: {text}")
         
         chronicle = get_chronicle_client(project_id, customer_id, region)
         
@@ -115,8 +112,9 @@ async def search_security_events(
         
         logger.info(f"Search time range: {start_time} to {end_time}")
         
-        events = chronicle.search_udm(
-            query=query,
+        # Use the new natural language search method
+        events = chronicle.nl_search(
+            text=text,
             start_time=start_time,
             end_time=end_time,
             max_events=max_events
@@ -360,7 +358,7 @@ async def list_security_rules(
     project_id: str = None,
     customer_id: str = None,
     region: str = None
-) -> str:
+) -> Dict[str, Any]:
     """List security detection rules from Chronicle.
     
     Args:
@@ -369,40 +367,18 @@ async def list_security_rules(
         region: Chronicle region (defaults to config)
         
     Returns:
-        Formatted string with security detection rules
+        Raw response from the Chronicle API containing security detection rules
     """
     try:
         chronicle = get_chronicle_client(project_id, customer_id, region)
-        
         rules_response = chronicle.list_rules()
-        
-        # Handle different possible response formats
-        rules = []
-        if isinstance(rules_response, dict) and 'rules' in rules_response:
-            rules = rules_response.get('rules', [])
-        elif isinstance(rules_response, list):
-            rules = rules_response
-            
-        if not rules:
-            return "No security detection rules found."
-            
-        result = f"Found {len(rules)} security detection rules:\n\n"
-        
-        for i, rule in enumerate(rules, 1):
-            rule_id = rule.get('ruleId', 'Unknown')
-            rule_name = rule.get('ruleName', 'Unnamed Rule')
-            rule_type = rule.get('ruleType', 'Unknown')
-            enabled = "Enabled" if rule.get('enabled', False) else "Disabled"
-            
-            result += f"Rule {i}:\n"
-            result += f"ID: {rule_id}\n"
-            result += f"Name: {rule_name}\n"
-            result += f"Type: {rule_type}\n"
-            result += f"Status: {enabled}\n\n"
-            
-        return result
+        return rules_response
     except Exception as e:
-        return f"Error listing security rules: {str(e)}"
+        logger.error(f"Error listing security rules: {str(e)}", exc_info=True)
+        return {
+            "error": str(e),
+            "rules": []
+        }
 
 @mcp.tool()
 async def get_ioc_matches(

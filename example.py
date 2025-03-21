@@ -16,11 +16,12 @@
 """Example usage of the Chronicle Security Operations MCP server.
 
 This example demonstrates how to use the secops-mcp server to perform
-security operations tasks using Chronicle.
+security operations tasks using Chronicle, including natural language search.
 """
 
 import asyncio
 import os
+import argparse
 from datetime import datetime, timedelta, timezone
 import json
 
@@ -30,14 +31,23 @@ CUSTOMER_ID = os.environ.get("CHRONICLE_CUSTOMER_ID", "your-chronicle-customer-i
 REGION = os.environ.get("CHRONICLE_REGION", "us")
 
 # Chronicle security examples
-async def security_examples():
-    """Run examples of Chronicle security API calls."""
+async def security_examples(project_id: str, customer_id: str, region: str) -> None:
+    """Run examples of Chronicle security API calls.
+    
+    Args:
+        project_id: Google Cloud project ID
+        customer_id: Chronicle customer ID
+        region: Chronicle region
+    """
     print("\n=== Chronicle Security API Examples ===\n")
     
-    # Example 1: Search for network connection events using defaults
-    print("Example 1: Search for network connection events (using environment defaults)")
+    # Example 1: Search for network connection events using UDM query
+    print("Example 1: Search for network connection events using UDM query")
     events_result = await search_security_events(
-        query='metadata.event_type = "NETWORK_CONNECTION"',
+        text='metadata.event_type = "NETWORK_CONNECTION"',
+        project_id=project_id,
+        customer_id=customer_id,
+        region=region,
         hours_back=24,
         max_events=5
     )
@@ -83,46 +93,153 @@ async def security_examples():
         if 'application_protocol' in network:
             print(f"  Application: {network.get('application_protocol', 'Unknown')}")
     
-    # Example 2: Get security alerts with explicit parameters
-    print("\nExample 2: Get security alerts (with explicit parameters)")
+    # Example 2: Get security alerts
+    print("\nExample 2: Get security alerts")
     alerts = await get_security_alerts(
-        project_id=PROJECT_ID,
-        customer_id=CUSTOMER_ID,
-        region=REGION,
+        project_id=project_id,
+        customer_id=customer_id,
+        region=region,
         hours_back=24,
         max_alerts=5
     )
     print(alerts)
     
     # Example 3: Look up an entity (example IP address)
-    print("\nExample 3: Look up an entity (using environment defaults)")
+    print("\nExample 3: Look up an entity")
     entity_info = await lookup_entity(
-        entity_value="8.8.8.8"  # Example IP address (Google DNS)
+        entity_value="8.8.8.8",  # Example IP address (Google DNS)
+        project_id=project_id,
+        customer_id=customer_id,
+        region=region
     )
     print(entity_info)
     
     # Example 4: List security rules
-    print("\nExample 4: List security rules (using environment defaults)")
-    rules = await list_security_rules()
+    print("\nExample 4: List security rules")
+    rules = await list_security_rules(
+        project_id=project_id,
+        customer_id=customer_id,
+        region=region
+    )
     print(rules)
     
     # Example 5: Get IoC matches
-    print("\nExample 5: Get IoC matches (using environment defaults)")
+    print("\nExample 5: Get IoC matches")
     iocs = await get_ioc_matches(
+        project_id=project_id,
+        customer_id=customer_id,
+        region=region,
         hours_back=24,
         max_matches=5
     )
     print(iocs)
 
-async def main():
-    """Run security examples."""
-    import argparse
+    # Example 6: Natural language security event search
+    print("\nExample 6: Natural language security event search")
+    nl_queries = [
+        "Show me network connections from the last hour",
+        "Find login attempts"
+    ]
     
+    for query in nl_queries:
+        print(f"\nNatural language query: '{query}'")
+        nl_events = await search_security_events(
+            text=query,  # Using the text parameter for natural language
+            project_id=project_id,
+            customer_id=customer_id,
+            region=region,
+            hours_back=6,
+            max_events=5
+        )
+        
+        # Process results
+        total_nl_events = nl_events.get('total_events', 0)
+        nl_event_list = nl_events.get('events', [])
+        
+        print(f"Found {total_nl_events} events, showing details for {len(nl_event_list)} events:")
+        
+        # Display the first few events
+        for i, event_wrapper in enumerate(nl_event_list[:3], 1):
+            # Extract the actual event data from the wrapper
+            event = event_wrapper.get('event', {})
+            
+            # Extract metadata
+            metadata = event.get('metadata', {})
+            event_time = metadata.get('eventTimestamp', 'Unknown')
+            event_type = metadata.get('eventType', 'Unknown')
+            
+            print(f"\nEvent {i}:")
+            print(f"  Time: {event_time}")
+            print(f"  Type: {event_type}")
+            
+            # Extract IP information
+            principal = event.get('principal', {})
+            target = event.get('target', {})
+            
+            principal_ip = principal.get('ip', ['Unknown']) if 'ip' in principal else ['None']
+            target_ip = target.get('ip', ['Unknown']) if 'ip' in target else ['None']
+            
+            print(f"  Source IP: {', '.join(principal_ip)}")
+            print(f"  Target IP: {', '.join(target_ip)}")
+    
+    # Example 7: Interactive natural language query
+    print("\nExample 7: Interactive natural language query")
+    try:
+        custom_query = input("Enter a natural language query (e.g., 'Show me suspicious activity'): ")
+        if custom_query:
+            print(f"\nNatural language query: '{custom_query}'")
+            custom_events = await search_security_events(
+                text=custom_query,
+                project_id=project_id,
+                customer_id=customer_id,
+                region=region,
+                hours_back=24,
+                max_events=10
+            )
+            
+            # Process results
+            total_custom_events = custom_events.get('total_events', 0)
+            custom_event_list = custom_events.get('events', [])
+            
+            print(f"Found {total_custom_events} events, showing {len(custom_event_list)} events")
+            
+            # Display the events
+            for i, event_wrapper in enumerate(custom_event_list, 1):
+                event = event_wrapper.get('event', {})
+                metadata = event.get('metadata', {})
+                event_time = metadata.get('eventTimestamp', 'Unknown')
+                event_type = metadata.get('eventType', 'Unknown')
+                
+                print(f"\nEvent {i}:")
+                print(f"  Time: {event_time}")
+                print(f"  Type: {event_type}")
+    except KeyboardInterrupt:
+        print("\nInteractive query cancelled.")
+
+async def main() -> None:
+    """Parse command line arguments and run security examples."""
     parser = argparse.ArgumentParser(description='Security Operations MCP examples')
+    parser.add_argument('--project-id', help='Google Cloud project ID', 
+                        default=os.environ.get("CHRONICLE_PROJECT_ID", ""))
+    parser.add_argument('--customer-id', help='Chronicle customer ID', 
+                        default=os.environ.get("CHRONICLE_CUSTOMER_ID", ""))
+    parser.add_argument('--region', help='Chronicle region', 
+                        default=os.environ.get("CHRONICLE_REGION", "us"))
     parser.add_argument('--verbose', action='store_true', help='Show more detailed output')
     args = parser.parse_args()
     
-    await security_examples()
+    # Use defaults if not provided
+    if not args.project_id:
+        args.project_id = "725716774503"  # Default value
+        print(f"Using default project ID: {args.project_id}")
+    
+    if not args.customer_id:
+        args.customer_id = "c3c6260c1c9340dcbbb802603bbf9636"  # Default value
+        print(f"Using default customer ID: {args.customer_id}")
+    
+    print(f"Using Chronicle settings: project_id={args.project_id}, customer_id={args.customer_id}, region={args.region}")
+    
+    await security_examples(args.project_id, args.customer_id, args.region)
 
 # Import the functions after defining the example functions to avoid circular imports
 from secops_mcp import (
