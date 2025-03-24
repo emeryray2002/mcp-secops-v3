@@ -100,7 +100,7 @@ async def search_security_events(
         region: Chronicle region (defaults to config)
         
     Returns:
-        Complete JSON object containing the search results, including events and metadata. Also includes the YL2 search query used to generate the results.
+        Dictionary containing the UDM query and search results, including events and metadata.
     """
     try:
         logger.info(f"Searching security events with natural language query: {text}")
@@ -138,20 +138,22 @@ async def search_security_events(
         
         logger.info(f"Search results: {total_events} total events, {len(event_list)} returned")
         
-        # Add the UDM query to the response
-        events["udm_query"] = udm_query
-        
-        # Return the entire events object
-        return events
+        # Return a new dictionary with UDM query first, then events data
+        return {
+            "udm_query": udm_query,
+            "events": events
+        }
         
     except Exception as e:
         logger.error(f"Error searching security events: {str(e)}", exc_info=True)
         # Return an error object that can be processed by the model
         return {
-            "error": str(e),
-            "events": [],
-            "total_events": 0,
-            "udm_query": None
+            "udm_query": None,
+            "events": {
+                "error": str(e),
+                "events": [],
+                "total_events": 0
+            }
         }
 
 @mcp.tool()
