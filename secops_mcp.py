@@ -100,7 +100,7 @@ async def search_security_events(
         region: Chronicle region (defaults to config)
         
     Returns:
-        Complete JSON object containing the search results, including events and metadata
+        Complete JSON object containing the search results, including events and metadata. Also includes the YL2 search query used to generate the results.
     """
     try:
         logger.info(f"Searching security events with natural language query: {text}")
@@ -113,8 +113,11 @@ async def search_security_events(
         logger.info(f"Search time range: {start_time} to {end_time}")
         
         # Use the new natural language search method
-        events = chronicle.nl_search(
-            text=text,
+        udm_query = chronicle.translate_nl_to_udm(text)
+        logger.info(f"YL2 UDM Query: {udm_query}")
+        
+        events = chronicle.search_udm(
+            query=udm_query,
             start_time=start_time,
             end_time=end_time,
             max_events=max_events
@@ -135,6 +138,9 @@ async def search_security_events(
         
         logger.info(f"Search results: {total_events} total events, {len(event_list)} returned")
         
+        # Add the UDM query to the response
+        events["udm_query"] = udm_query
+        
         # Return the entire events object
         return events
         
@@ -144,7 +150,8 @@ async def search_security_events(
         return {
             "error": str(e),
             "events": [],
-            "total_events": 0
+            "total_events": 0,
+            "udm_query": None
         }
 
 @mcp.tool()

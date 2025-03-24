@@ -10,3 +10,4 @@ wheels/
 .venv
 .venv/
 uv.lock
+example.py
