@@ -1,4 +1,4 @@
-This is a personal project.
+This project is deprecated in favor of: https://github.com/google/mcp-security
 
 # Chronicle SecOps MCP Server
 [![smithery badge](https://smithery.ai/badge/@emeryray2002/mcp-secops-v3)](https://smithery.ai/server/@emeryray2002/mcp-secops-v3)
